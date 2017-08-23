@@ -1,0 +1,171 @@
+<launch>
+  <!-- LASER -->
+  <node pkg="urg_node" type="urg_node" name="UTM30_test" output="screen" >
+  <!-- UTM-30LX is symlink to serial device with certain ID (/dev/serial/by-id/usb-... -->
+      <param name="serial_port" value="$(find turtlebot_ase)/sensors/UTM-30LX" />
+      <param name="serial_baud" value="115200" />
+      <param name="frame_id" value="base_laser_link" />
+      <param name="calibrate_time" value="true" />
+      <param name="cluster" value="1" />
+  </node>
+    
+    
+  <!-- KINECT -->
+  <arg name="base_name"         default="kinect2"/>
+  <arg name="sensor"            default="" />
+  <arg name="publish_tf"        default="false" />
+  <arg name="base_name_tf"      default="$(arg base_name)" />
+  <arg name="fps_limit"         default="-1.0"/>
+  <arg name="calib_path"        default="$(find kinect2_bridge)/data/"/>
+  <arg name="use_png"           default="false"/>
+  <arg name="jpeg_quality"      default="90"/>
+  <arg name="png_level"         default="1"/>
+  <arg name="depth_method"      default="cpu"/>
+  <arg name="depth_device"      default="-1"/>
+  <arg name="reg_method"        default="cpu"/>
+  <arg name="reg_devive"        default="-1"/>
+  <arg name="max_depth"         default="12.0"/>
+  <arg name="min_depth"         default="0.1"/>
+  <arg name="queue_size"        default="5"/>
+  <arg name="bilateral_filter"  default="true"/>
+  <arg name="edge_aware_filter" default="true"/>
+  <arg name="worker_threads"    default="4"/>
+  <arg name="machine"           default="localhost" />
+  <arg name="nodelet_manager"   default="$(arg base_name)" />
+  <arg name="start_manager"     default="true" />
+  <arg name="use_machine"       default="true" />
+  
+  <!-- Set display environmental variable. Normally set to :0, but needs to be set when using kinect2_bridge over ssh,
+       for example when using multimaster_fkie -->
+  <env name="DISPLAY" value=":0"/>
+  
+  <node pkg="nodelet" type="nodelet" name="kinect2_manager" args="manager" output="screen">
+    <param name="capability_group" value="Kinect2_turtle" />
+  </node>
+
+  <node pkg="nodelet" type="nodelet" name="$(arg base_name)_bridge"
+        args="load kinect2_bridge/kinect2_bridge_nodelet kinect2_manager"
+        respawn="true" output="screen">
+    <param name="base_name"         type="str"    value="$(arg base_name)"/>
+    <param name="sensor"            type="str"    value="$(arg sensor)"/>
+    <param name="publish_tf"        type="bool"   value="$(arg publish_tf)"/>
+    <param name="base_name_tf"      type="str"    value="$(arg base_name_tf)"/>
+    <param name="fps_limit"         type="double" value="$(arg fps_limit)"/>
+    <param name="calib_path"        type="str"    value="$(arg calib_path)"/>
+    <param name="use_png"           type="bool"   value="$(arg use_png)"/>
+    <param name="jpeg_quality"      type="int"    value="$(arg jpeg_quality)"/>
+    <param name="png_level"         type="int"    value="$(arg png_level)"/>
+    <param name="depth_method"      type="str"    value="$(arg depth_method)"/>
+    <param name="depth_device"      type="int"    value="$(arg depth_device)"/>
+    <param name="reg_method"        type="str"    value="$(arg reg_method)"/>
+    <param name="reg_devive"        type="int"    value="$(arg reg_devive)"/>
+    <param name="max_depth"         type="double" value="$(arg max_depth)"/>
+    <param name="min_depth"         type="double" value="$(arg min_depth)"/>
+    <param name="queue_size"        type="int"    value="$(arg queue_size)"/>
+    <param name="bilateral_filter"  type="bool"   value="$(arg bilateral_filter)"/>
+    <param name="edge_aware_filter" type="bool"   value="$(arg edge_aware_filter)"/>
+    <param name="worker_threads"    type="int"    value="$(arg worker_threads)"/>
+    <param name="capability_group" value="Kinect2_turtle" />
+  </node>
+
+  <!-- sd point cloud (512 x 424) -->
+  <node pkg="nodelet" type="nodelet" name="$(arg base_name)_points_xyzrgb_sd"
+        args="load depth_image_proc/point_cloud_xyzrgb kinect2_manager" respawn="true">
+    <remap from="rgb/camera_info"             to="$(arg base_name)/sd/camera_info" />
+    <remap from="rgb/image_rect_color"        to="$(arg base_name)/sd/image_color_rect" />
+    <remap from="depth_registered/image_rect" to="$(arg base_name)/sd/image_depth_rect" />
+    <remap from="depth_registered/points"     to="$(arg base_name)/sd/points" />
+    <param name="queue_size" type="int" value="$(arg queue_size)" />
+    <param name="capability_group" value="Kinect2_turtle" />s
+  </node>
+
+  <!-- qhd point cloud (960 x 540) -->
+  <node pkg="nodelet" type="nodelet" name="$(arg base_name)_points_xyzrgb_qhd"
+        args="load depth_image_proc/point_cloud_xyzrgb kinect2_manager" respawn="true">
+    <remap from="rgb/camera_info"             to="$(arg base_name)/qhd/camera_info" />
+    <remap from="rgb/image_rect_color"        to="$(arg base_name)/qhd/image_color_rect" />
+    <remap from="depth_registered/image_rect" to="$(arg base_name)/qhd/image_depth_rect" />
+    <remap from="depth_registered/points"     to="$(arg base_name)/qhd/points" />
+    <param name="queue_size" type="int" value="$(arg queue_size)" />
+    <param name="capability_group" value="Kinect2_turtle" />
+  </node>
+
+  <!-- hd point cloud (1920 x 1080) -->
+  <node pkg="nodelet" type="nodelet" name="$(arg base_name)_points_xyzrgb_hd"
+        args="load depth_image_proc/point_cloud_xyzrgb kinect2_manager" respawn="true">
+    <remap from="rgb/camera_info"             to="$(arg base_name)/hd/camera_info" />
+    <remap from="rgb/image_rect_color"        to="$(arg base_name)/hd/image_color_rect" />
+    <remap from="depth_registered/image_rect" to="$(arg base_name)/hd/image_depth_rect" />
+    <remap from="depth_registered/points"     to="$(arg base_name)/hd/points" />
+    <param name="queue_size" type="int" value="$(arg queue_size)" />
+    <param name="capability_group" value="Kinect2_turtle" />
+  </node>
+  
+  
+  <!-- MINIMAL -->
+  <arg name="base"             default="$(env TURTLEBOT_BASE)"/>  <!-- create, roomba -->
+  <arg name="stacks"           default="$(env TURTLEBOT_STACKS)"/>  <!-- circles, hexagons -->
+  <arg name="3d_sensor"        default="$(env TURTLEBOT_3D_SENSOR)"/>  <!-- kinect, asus_xtion_pro -->
+  <arg name="simulation"       default="$(env TURTLEBOT_SIMULATION)"/>
+  <arg name="serialport"       default="$(env TURTLEBOT_SERIAL_PORT)"/> <!-- /dev/ttyUSB0, /dev/ttyS0 -->
+  <arg name="robot_name"       default="$(env TURTLEBOT_NAME)"/>
+  <arg name="robot_type"       default="$(env TURTLEBOT_TYPE)"/>
+
+  <param name="/use_sim_time" value="$(arg simulation)"/>
+
+  <include file="$(find turtlebot_bringup)/launch/includes/robot.launch.xml">
+    <arg name="base" value="$(arg base)" />
+    <arg name="stacks" value="$(arg stacks)" />
+    <arg name="3d_sensor" value="$(arg 3d_sensor)" />
+  </include>
+  <include file="$(find turtlebot_bringup)/launch/includes/mobile_base.launch.xml">
+    <arg name="base" value="$(arg base)" />
+    <arg name="serialport" value="$(arg serialport)" />
+  </include>
+
+  <node pkg="nodelet" type="nodelet" name="kobuki_safety_controller" args="load kobuki_safety_controller/SafetyControllerNodelet mobile_base_nodelet_manager">
+    <remap from="kobuki_safety_controller/cmd_vel" to="cmd_vel_mux/input/safety_controller"/>
+    <remap from="kobuki_safety_controller/events/bumper" to="mobile_base/events/bumper"/>
+    <remap from="kobuki_safety_controller/events/cliff" to="mobile_base/events/cliff"/>
+    <remap from="kobuki_safety_controller/events/wheel_drop" to="mobile_base/events/wheel_drop"/>
+  </node>
+  
+  <node pkg="nodelet" type="nodelet" name="navigation_velocity_smoother" args="load yocs_velocity_smoother/VelocitySmootherNodelet mobile_base_nodelet_manager">
+    <rosparam file="$(find turtlebot_ase)/param/smoother.yaml" command="load"/>
+    <remap from="navigation_velocity_smoother/smooth_cmd_vel" to="cmd_vel_mux/input/navi"/>
+
+    <!-- Robot velocity feedbacks; use the default base configuration -->
+    <remap from="navigation_velocity_smoother/odometry" to="odom"/>
+    <remap from="navigation_velocity_smoother/robot_cmd_vel" to="mobile_base/commands/velocity"/>
+  </node>
+
+  <!--<node pkg="ohjaus" name="avoidance" type="laser_obstacle_avoidance.py">
+  </node> -->
+  
+  <!--<node pkg="ohjaus" name="avoidance" type="depth_laser_fusion_obstacle_avoidance.py">
+  </node> -->
+  
+  <node pkg="ohjaus" name="avoidance" type="depth_obstacle_avoidance.py">
+  </node>
+
+  <node pkg="ohjaus" name="hallway_follower" type="laser_hallway_follower.py">
+  </node>
+
+  <node pkg="ohjaus" name="laser_crossroads_detection" type="laser_crossroads_detection.py">
+  </node>
+
+  <node pkg="ohjaus" name="usonic" type="ultrasonic_array.py">
+  </node>
+
+  <node pkg="ohjaus" name="hallway_width" type="hallway_width_publisher.py">
+  </node>
+  
+  <node pkg="nodelet" type="nodelet" name="dock_drive" args="load kobuki_auto_docking/AutoDockingNodelet mobile_base_nodelet_manager">
+    <rosparam file="$(find kobuki_auto_docking)/param/auto_docking.yaml" command="load"/>
+    <remap from="dock_drive/odom" to="odom"/>
+    <remap from="dock_drive/core" to="mobile_base/sensors/core"/>
+    <remap from="dock_drive/dock_ir" to="mobile_base/sensors/dock_ir"/>
+    <remap from="dock_drive/motor_power" to="mobile_base/commands/motor_power"/>
+    <remap from="dock_drive/velocity" to="mobile_base/commands/velocity"/>
+  </node>
+</launch>

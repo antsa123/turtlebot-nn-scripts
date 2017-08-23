@@ -1,0 +1,4 @@
+name:type:up:down:right:left
+1:T:0:2:3:0
+2:T:1:0:3:0
+3:T:1:0:0:2

@@ -1,0 +1,92 @@
+<launch>
+  <!-- LASER -->
+  <node pkg="urg_node" type="urg_node" name="UTM30_test" output="screen" >
+  <!-- UTM-30LX is symlink to serial device with certain ID (/dev/serial/by-id/usb-... -->
+      <param name="serial_port" value="$(find turtlebot_ase)/sensors/UTM-30LX" />
+      <param name="serial_baud" value="115200" />
+      <param name="frame_id" value="base_laser_link" />
+      <param name="calibrate_time" value="true" />
+      <param name="cluster" value="1" />
+  </node>
+    
+    
+  <!-- KINECT -->
+
+  
+  
+  <!-- MINIMAL -->
+  <arg name="base"             default="$(env TURTLEBOT_BASE)"/>  <!-- create, roomba -->
+  <arg name="stacks"           default="$(env TURTLEBOT_STACKS)"/>  <!-- circles, hexagons -->
+  <arg name="3d_sensor"        default="$(env TURTLEBOT_3D_SENSOR)"/>  <!-- kinect, asus_xtion_pro -->
+  <arg name="simulation"       default="$(env TURTLEBOT_SIMULATION)"/>
+  <arg name="serialport"       default="$(env TURTLEBOT_SERIAL_PORT)"/> <!-- /dev/ttyUSB0, /dev/ttyS0 -->
+  <arg name="robot_name"       default="$(env TURTLEBOT_NAME)"/>
+  <arg name="robot_type"       default="$(env TURTLEBOT_TYPE)"/>
+
+  <param name="/use_sim_time" value="$(arg simulation)"/>
+
+  <include file="$(find turtlebot_bringup)/launch/includes/robot.launch.xml">
+    <arg name="base" value="$(arg base)" />
+    <arg name="stacks" value="$(arg stacks)" />
+    <arg name="3d_sensor" value="$(arg 3d_sensor)" />
+  </include>
+  <include file="$(find turtlebot_bringup)/launch/includes/mobile_base.launch.xml">
+    <arg name="base" value="$(arg base)" />
+    <arg name="serialport" value="$(arg serialport)" />
+  </include>
+
+  <node pkg="nodelet" type="nodelet" name="kobuki_safety_controller" args="load kobuki_safety_controller/SafetyControllerNodelet mobile_base_nodelet_manager">
+    <remap from="kobuki_safety_controller/cmd_vel" to="cmd_vel_mux/input/safety_controller"/>
+    <remap from="kobuki_safety_controller/events/bumper" to="mobile_base/events/bumper"/>
+    <remap from="kobuki_safety_controller/events/cliff" to="mobile_base/events/cliff"/>
+    <remap from="kobuki_safety_controller/events/wheel_drop" to="mobile_base/events/wheel_drop"/>
+  </node>
+  
+  <node pkg="nodelet" type="nodelet" name="navigation_velocity_smoother" args="load yocs_velocity_smoother/VelocitySmootherNodelet mobile_base_nodelet_manager">
+    <rosparam file="$(find turtlebot_ase)/param/smoother.yaml" command="load"/>
+    <remap from="navigation_velocity_smoother/smooth_cmd_vel" to="cmd_vel_mux/input/navi"/>
+
+    <!-- Robot velocity feedbacks; use the default base configuration -->
+    <remap from="navigation_velocity_smoother/odometry" to="odom"/>
+    <remap from="navigation_velocity_smoother/robot_cmd_vel" to="mobile_base/commands/velocity"/>
+  </node>
+
+  <node pkg="ohjaus" name="laser_obstacle_avoidance" type="laser_obstacle_avoidance.py">
+  </node>
+  
+  <node pkg="ohjaus" name="laser_clipped_obstacle_avoidance" type="laser_clipped_avoidance.py">
+  </node>
+  
+  <node pkg="ohjaus" name="voting" type="voting.py">
+  </node>
+  
+  <!-- <node pkg="ohjaus" name="avoidance" type="depth_laser_fusion_obstacle_avoidance.py">
+  </node> -->
+  
+  <!-- <node pkg="ohjaus" name="avoidance" type="Depth_obstacle_avoidance.py">
+  </node> -->
+
+  <!-- <node pkg="ohjaus" name="hallway_follower" type="laser_hallway_follower.py">
+  </node> -->
+
+  <!-- <node pkg="ohjaus" name="laser_crossroads_detection" type="laser_crossroads_detection.py">
+  </node> -->
+
+  <!-- <node pkg="ohjaus" name="usonic" type="ultrasonic_array.py">
+  </node> -->
+
+  <!-- <node pkg="ohjaus" name="hallway_width" type="hallway_width_publisher.py">
+  </node> -->
+  
+  <!-- <node pkg="ohjaus" name="avoidance" type="laser_depth_avoidance.py">
+  </node> -->
+  
+  <node pkg="nodelet" type="nodelet" name="dock_drive" args="load kobuki_auto_docking/AutoDockingNodelet mobile_base_nodelet_manager">
+    <rosparam file="$(find kobuki_auto_docking)/param/auto_docking.yaml" command="load"/>
+    <remap from="dock_drive/odom" to="odom"/>
+    <remap from="dock_drive/core" to="mobile_base/sensors/core"/>
+    <remap from="dock_drive/dock_ir" to="mobile_base/sensors/dock_ir"/>
+    <remap from="dock_drive/motor_power" to="mobile_base/commands/motor_power"/>
+    <remap from="dock_drive/velocity" to="mobile_base/commands/velocity"/>
+  </node>
+</launch>

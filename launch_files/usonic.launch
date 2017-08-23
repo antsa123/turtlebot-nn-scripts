@@ -1,0 +1,4 @@
+<launch>
+  <node pkg="ohjaus" type="ultrasonic_array.py" name="usonic" output="screen" >
+  </node>
+</launch>
